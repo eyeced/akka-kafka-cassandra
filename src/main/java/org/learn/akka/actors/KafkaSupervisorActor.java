@@ -2,7 +2,6 @@ package org.learn.akka.actors;
 
 import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
 import java.util.HashMap;
@@ -15,7 +14,10 @@ import java.util.stream.IntStream;
  */
 public class KafkaSupervisorActor extends AbstractLoggingActor {
 
-    public class Start {
+    /**
+     * Start message for starting the consumers
+     */
+    public static class Start {
 
         private int numOfConsumers;
         private String brokers;
@@ -28,6 +30,9 @@ public class KafkaSupervisorActor extends AbstractLoggingActor {
         }
     }
 
+    /**
+     * workers map
+     */
     Map<Integer, ActorRef> workers = new HashMap<>();
 
     /**
@@ -58,9 +63,9 @@ public class KafkaSupervisorActor extends AbstractLoggingActor {
 
         IntStream.range(0, start.numOfConsumers)
                 .forEach(i -> {
-                    ActorRef worker = context().actorOf(Props.create(KafkaConsumerActor.class));
+                    ActorRef worker = context().actorOf(KafkaConsumerActor.create(props, start.topics));
                     workers.put(i, worker);
-                    worker.tell(new KafkaConsumerActor.StartPolling(props, start.topics), self());
+                    worker.tell(new KafkaConsumerActor.Poll(), self());
                 });
     }
 }
