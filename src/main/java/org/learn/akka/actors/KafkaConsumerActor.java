@@ -9,6 +9,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by abhiso on 7/9/16.
@@ -19,13 +20,15 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
     private List<String> topics;
     private Properties properties;
     private Map<ConsumerRecord<String, String>, ActorRef> actorRefMap = new HashMap<>();
+    private AtomicInteger count;
+    private int messageCount;
 
     /**
      * hookup for akka to create the Kafka Consumer Actor
      *
      * @param properties kafka consumer properties
      * @param topics topics subscribed to
-     * @return
+     * @return Akka Props
      */
     public static Props create(Properties properties, String... topics) {
         return Props.create(KafkaConsumerActor.class, properties, topics);
@@ -76,6 +79,8 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
     private void poll(Poll poll) {
         log().info("Got Poll message");
         ConsumerRecords<String, String> records = consumer.poll(Long.MAX_VALUE);
+        count = new AtomicInteger(0);
+        messageCount = records.count();
         records.forEach(record -> {
             ActorRef handler = context().actorOf(Props.create(MessageHandlerActor.class));
             actorRefMap.put(record, handler);
@@ -89,6 +94,10 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
      */
     private void messageHandled(Done done) {
         log().info("Message has been processed - " + done.consumerRecord);
+        int currentCount = count.incrementAndGet();
+        if (currentCount == messageCount) {
+            self().tell(new Poll(), self());
+        }
     }
 
     /**
