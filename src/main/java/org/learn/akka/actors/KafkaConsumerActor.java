@@ -7,42 +7,36 @@ import akka.japi.pf.ReceiveBuilder;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
 
+import javax.inject.Named;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by abhiso on 7/9/16.
  */
+@Named("KafkaConsumerActor")
+@Scope("Prototype")
 public class KafkaConsumerActor extends AbstractLoggingActor {
 
     private KafkaConsumer<String, String> consumer;
-    private List<String> topics;
-    private Properties properties;
+
+    @Value("${kafka.brokers}")
+    private String brokers;
+
+    @Value("${kafka.consumer.topics}")
+    private String topics;
+
     private Map<ConsumerRecord<String, String>, ActorRef> actorRefMap = new HashMap<>();
     private AtomicInteger count;
     private int messageCount;
 
     /**
-     * hookup for akka to create the Kafka Consumer Actor
-     *
-     * @param properties kafka consumer properties
-     * @param topics topics subscribed to
-     * @return Akka Props
-     */
-    public static Props create(Properties properties, String... topics) {
-        return Props.create(KafkaConsumerActor.class, properties, topics);
-    }
-
-    /**
      * constructor for the actor
-     * @param props properties for the consumer
-     * @param topics topics it need to listen
      */
-    public KafkaConsumerActor(Properties props, String[] topics) {
-        this.topics = Arrays.asList(topics);
-        this.properties = props;
-
+    public KafkaConsumerActor() {
         receive(ReceiveBuilder
                 .match(Poll.class, this::poll)
                 .match(Done.class, this::messageHandled)
@@ -59,13 +53,23 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
     @Override
     public void preStart() throws Exception {
         log().info("Starting consumer");
-        consumer = new KafkaConsumer<>(properties);
-        consumer.subscribe(topics, new ConsumerRebalanceListener() {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", brokers);
+        props.put("group.id", "perf-test");
+        props.put("offset.storage", "kafka");
+        props.put("enable.auto.commit", "false");
+        props.put("auto.commit.interval.ms", "1000");
+        props.put("session.timeout.ms", "30000");
+        props.put("auto.offset.reset", "earliest");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+        consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(Arrays.asList(topics.split(",")), new ConsumerRebalanceListener() {
             @Override
             public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
                 doCommitSync();
             }
-
             @Override
             public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
         });
@@ -79,13 +83,19 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
     private void poll(Poll poll) {
         log().info("Got Poll message");
         ConsumerRecords<String, String> records = consumer.poll(Long.MAX_VALUE);
-        count = new AtomicInteger(0);
-        messageCount = records.count();
-        records.forEach(record -> {
-            ActorRef handler = context().actorOf(Props.create(MessageHandlerActor.class));
-            actorRefMap.put(record, handler);
-            handler.tell(new MessageHandlerActor.ProcessMessage(record), self());
-        });
+        log().info("Records count " + records.count());
+
+        if (records.count() > 0) {
+            count = new AtomicInteger(0);
+            messageCount = records.count();
+            records.forEach(record -> {
+                ActorRef handler = context().actorOf(Props.create(MessageHandlerActor.class));
+                actorRefMap.put(record, handler);
+                handler.tell(new MessageHandlerActor.ProcessMessage(record), self());
+            });
+        } else {
+            self().tell(new Poll(), self());
+        }
     }
 
     /**
