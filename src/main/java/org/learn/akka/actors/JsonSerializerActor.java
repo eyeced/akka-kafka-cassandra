@@ -29,14 +29,12 @@ public class JsonSerializerActor extends AbstractLoggingActor {
 
     /**
      * deserialize json to object
-     *
-     * @param <T> type T
      */
-    public static class Deserialize<T> {
+    public static class Deserialize {
         private String json;
-        private Class<T> clazz;
+        private Class clazz;
 
-        public Deserialize(String json, Class<T> clazz) {
+        public Deserialize(String json, Class clazz) {
             this.json = json;
             this.clazz = clazz;
         }
@@ -57,7 +55,7 @@ public class JsonSerializerActor extends AbstractLoggingActor {
     public JsonSerializerActor() {
         receive(ReceiveBuilder
                 .match(Serialize.class, this::serialize)
-                .match(Deserialize.class, this::deserialize)
+                .match(Deserialize.class, deserialize -> deserialize((Deserialize) deserialize))
                 .build()
         );
     }
@@ -69,9 +67,9 @@ public class JsonSerializerActor extends AbstractLoggingActor {
      * @param <T>           type T
      * @return json string
      */
-    private <T> String serialize(Serialize<T> serializeThis) {
+    private <T> void serialize(Serialize<T> serializeThis) {
         try {
-            return objectMapper.writeValueAsString(serializeThis.value);
+            objectMapper.writeValueAsString(serializeThis.value);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -81,12 +79,11 @@ public class JsonSerializerActor extends AbstractLoggingActor {
      * deserialize json to T type object
      *
      * @param deserialize deserialize object
-     * @param <T>         type T
      * @return T object
      */
-    private <T> T deserialize(Deserialize deserialize) {
+    private void deserialize(Deserialize deserialize) {
         try {
-            return (T) objectMapper.readValue(deserialize.json, deserialize.clazz);
+            objectMapper.readValue(deserialize.json, deserialize.clazz);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
