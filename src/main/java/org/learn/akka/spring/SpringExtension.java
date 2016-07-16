@@ -5,10 +5,12 @@ import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
 import akka.actor.Props;
 import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
 
 /**
  * Created by abhiso on 7/13/16.
  */
+@Component
 public class SpringExtension extends AbstractExtensionId<SpringExtension.SpringExt> {
 
     /**

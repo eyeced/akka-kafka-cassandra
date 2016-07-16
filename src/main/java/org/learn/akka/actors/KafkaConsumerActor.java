@@ -9,16 +9,16 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
-import javax.inject.Named;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by abhiso on 7/9/16.
  */
-@Named("KafkaConsumerActor")
-@Scope("Prototype")
+@Component("KafkaConsumerActor")
+@Scope("prototype")
 public class KafkaConsumerActor extends AbstractLoggingActor {
 
     private KafkaConsumer<String, String> consumer;
@@ -38,6 +38,7 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
      */
     public KafkaConsumerActor() {
         receive(ReceiveBuilder
+                .match(Subscribe.class, this::subscribe)
                 .match(Poll.class, this::poll)
                 .match(Done.class, this::messageHandled)
                 .match(RecoverableError.class, this::handleRecoverableError)
@@ -46,13 +47,11 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
     }
 
     /**
-     * call in the pre start
-     * subscribe to the topics for the kafka consumer
-     * @throws Exception
+     * initialize the kafka consumer and subscribe to the topics it's gonna listen to
      */
-    @Override
-    public void preStart() throws Exception {
+    private void subscribe(Subscribe subscribe) {
         log().info("Starting consumer");
+
         Properties props = new Properties();
         props.put("bootstrap.servers", brokers);
         props.put("group.id", "perf-test");
@@ -64,16 +63,20 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
-        consumer = new KafkaConsumer<>(props);
-        consumer.subscribe(Arrays.asList(topics.split(",")), new ConsumerRebalanceListener() {
-            @Override
-            public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                doCommitSync();
-            }
-            @Override
-            public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
-        });
-        super.preStart();
+        try {
+            consumer = new KafkaConsumer<>(props);
+            consumer.subscribe(Arrays.asList(topics.split(",")), new ConsumerRebalanceListener() {
+                @Override
+                public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                    doCommitSync();
+                }
+                @Override
+                public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
+            });
+            context().sender().tell(new SubscriptionSuccess(), self());
+        } catch (Exception e) {
+            context().sender().tell(new SubscriptionFailure(), self());
+        }
     }
 
     /**
@@ -138,9 +141,26 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
     }
 
     /**
+     * Subscribe Kafka Consumer to the brokers for the topics
+     */
+    public static class Subscribe {}
+
+    /**
      * Start Polling message for the Kafka Consumer Actor
      */
     public static class Poll {}
+
+    /**
+     * Kafka has successfully subscribed to the broker
+     * and ready to poll on messages
+     */
+    public static class SubscriptionSuccess {}
+
+    /**
+     * Some error came while subscribing to the topic
+     */
+    public static class SubscriptionFailure {}
+
 
     /**
      * BaseMessage for messages handled by Kafka Consumer Actor
@@ -170,5 +190,13 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
         public RecoverableError(ConsumerRecord consumerRecord) {
             super(consumerRecord);
         }
+    }
+
+    public void setBrokers(String brokers) {
+        this.brokers = brokers;
+    }
+
+    public void setTopics(String topics) {
+        this.topics = topics;
     }
 }

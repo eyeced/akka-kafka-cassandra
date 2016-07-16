@@ -22,10 +22,10 @@ public class CassandraStore {
     private Session session;
 
     @Value("${cassandra.contactPoints}")
-    private String contactPoints = "lnxapp121,lnxapp119,lnxapp120,lnxapp329";
+    private String contactPoints;
 
     @Value("${cassandra.keyspace}")
-    private String keyspace = "async";
+    private String keyspace;
 
     /** caching prepared statements. */
     private Map<String, PreparedStatement> statementMap = new ConcurrentHashMap<>();

@@ -22,7 +22,7 @@ public class Runner implements CommandLineRunner {
     public void run(String... strings) throws Exception {
 
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-        ctx.scan("akka");
+        ctx.scan("org.learn.akka");
         ctx.refresh();
 
         // get the actor system from the spring context
