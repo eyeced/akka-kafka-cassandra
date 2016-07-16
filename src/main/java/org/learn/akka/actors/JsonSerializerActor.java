@@ -41,6 +41,28 @@ public class JsonSerializerActor extends AbstractLoggingActor {
     }
 
     /**
+     * serialization is complete with the json
+     */
+    public static class SerializationSuccess {
+        private String json;
+
+        public SerializationSuccess(String json) {
+            this.json = json;
+        }
+    }
+
+    /**
+     *
+     */
+    public static class DeserializationSuccess {
+        private Object value;
+
+        public DeserializationSuccess(Object value) {
+            this.value = value;
+        }
+    }
+
+    /**
      * serialize error comes while serializing
      * @param <T> type T object
      */

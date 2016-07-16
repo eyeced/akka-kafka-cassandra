@@ -2,7 +2,6 @@ package org.learn.akka.actors;
 
 import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
@@ -13,6 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.learn.akka.spring.SpringExtension.SpringExtProvider;
 
 /**
  * Created by abhiso on 7/9/16.
@@ -92,7 +93,7 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
             count = new AtomicInteger(0);
             messageCount = records.count();
             records.forEach(record -> {
-                ActorRef handler = context().actorOf(Props.create(MessageHandlerActor.class));
+                ActorRef handler = context().actorOf(SpringExtProvider.get(context().system()).props("MessageHandler"));
                 actorRefMap.put(record, handler);
                 handler.tell(new MessageHandlerActor.ProcessMessage(record), self());
             });

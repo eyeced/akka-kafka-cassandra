@@ -12,8 +12,8 @@ public class CassandraActor extends AbstractLoggingActor {
     private CassandraStore cassandraStore;
 
     public static class InsertOne<T> {
-        private T value;
-
+        private String cql;
+        private Object[] args;
     }
 
     public CassandraActor() {
