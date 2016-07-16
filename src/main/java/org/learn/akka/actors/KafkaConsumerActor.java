@@ -55,7 +55,7 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
 
         Properties props = new Properties();
         props.put("bootstrap.servers", brokers);
-        props.put("group.id", "perf-test");
+        props.put("group.id", "async-test");
         props.put("offset.storage", "kafka");
         props.put("enable.auto.commit", "false");
         props.put("auto.commit.interval.ms", "1000");
@@ -191,13 +191,5 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
         public RecoverableError(ConsumerRecord consumerRecord) {
             super(consumerRecord);
         }
-    }
-
-    public void setBrokers(String brokers) {
-        this.brokers = brokers;
-    }
-
-    public void setTopics(String topics) {
-        this.topics = topics;
     }
 }

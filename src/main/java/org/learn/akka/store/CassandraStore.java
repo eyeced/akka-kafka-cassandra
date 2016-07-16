@@ -9,16 +9,21 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Test to measure the performance of different sync and async operations.
+ * Cassandra Store for executing simple cql queries on it
+ * using Prepared statement and Bound statements only.
  * Created by abhiso on 6/14/16.
  */
 @Component
 public class CassandraStore {
 
-    /** C* cluster */
+    /**
+     * C* cluster
+     */
     private Cluster cluster;
 
-    /** C* session */
+    /**
+     * C* session
+     */
     private Session session;
 
     @Value("${cassandra.contactPoints}")
@@ -27,7 +32,9 @@ public class CassandraStore {
     @Value("${cassandra.keyspace}")
     private String keyspace;
 
-    /** caching prepared statements. */
+    /**
+     * caching prepared statements.
+     */
     private Map<String, PreparedStatement> statementMap = new ConcurrentHashMap<>();
 
     public CassandraStore() {
@@ -42,6 +49,7 @@ public class CassandraStore {
 
     /**
      * get the prepared statement
+     *
      * @param sql sql string
      * @return prepared statement
      */
@@ -56,7 +64,8 @@ public class CassandraStore {
 
     /**
      * perform the sync operation
-     * @param cql sql to be executed
+     *
+     * @param cql  sql to be executed
      * @param args args for the cql statment
      */
     public void sync(String cql, Object[] args) {
@@ -67,7 +76,8 @@ public class CassandraStore {
 
     /**
      * async operation
-     * @param cql cql to be executed
+     *
+     * @param cql  cql to be executed
      * @param args args to be inserted
      */
     public ResultSetFuture async(String cql, Object[] args) {
@@ -75,12 +85,5 @@ public class CassandraStore {
         boundStatement.bind(args);
         return session.executeAsync(boundStatement);
     }
-
-    public void setContactPoints(String contactPoints) {
-        this.contactPoints = contactPoints;
-    }
-
-    public void setKeyspace(String keyspace) {
-        this.keyspace = keyspace;
-    }
 }
+
