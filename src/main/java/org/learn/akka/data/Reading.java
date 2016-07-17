@@ -12,6 +12,8 @@ public class Reading {
     private Date readTime;
     private Long flag;
 
+    public Reading() {}
+
     public Reading(Long deviceId, Double value, Date readTime, Long flag) {
         this.deviceId = deviceId;
         this.value = value;
@@ -33,5 +35,15 @@ public class Reading {
 
     public Long getFlag() {
         return flag;
+    }
+
+    @Override
+    public String toString() {
+        return "Reading{" +
+                "deviceId=" + deviceId +
+                ", value=" + value +
+                ", readTime=" + readTime +
+                ", flag=" + flag +
+                '}';
     }
 }

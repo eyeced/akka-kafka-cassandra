@@ -13,8 +13,10 @@ import java.util.concurrent.CompletableFuture;
  */
 public class KafkaProducerActor extends AbstractLoggingActor {
 
+    /** The kafka producer */
     private Producer<String, String> producer;
 
+    /** the constructor */
     public KafkaProducerActor() {
         receive(ReceiveBuilder
                 .match(Config.class, this::init)
@@ -42,9 +44,8 @@ public class KafkaProducerActor extends AbstractLoggingActor {
      */
     private <T> void send(SendMessage<T> t) {
         String message = t.toString();
-        CompletableFuture.supplyAsync(() -> {
-            return producer.send(new ProducerRecord<>(t.topic, t.key, message));
-        });
+        CompletableFuture.supplyAsync(() -> producer.send(new ProducerRecord<>(t.topic, t.key, message)))
+                .whenComplete((recordMetadataFuture, throwable) -> {});
     }
 
     /**

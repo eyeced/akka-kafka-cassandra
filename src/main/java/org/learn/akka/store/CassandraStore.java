@@ -2,6 +2,7 @@ package org.learn.akka.store;
 
 import com.datastax.driver.core.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by abhiso on 6/14/16.
  */
 @Component
+@Scope("singleton")
 public class CassandraStore {
 
     /**
@@ -27,10 +29,10 @@ public class CassandraStore {
     private Session session;
 
     @Value("${cassandra.contactPoints}")
-    private String contactPoints;
+    private String contactPoints = "localhost";
 
     @Value("${cassandra.keyspace}")
-    private String keyspace;
+    private String keyspace = "async";
 
     /**
      * caching prepared statements.

@@ -86,7 +86,7 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
      */
     private void poll(Poll poll) {
         log().info("Got Poll message");
-        ConsumerRecords<String, String> records = consumer.poll(Long.MAX_VALUE);
+        ConsumerRecords<String, String> records = consumer.poll(1000);
         log().info("Records count " + records.count());
 
         if (records.count() > 0) {
@@ -107,7 +107,7 @@ public class KafkaConsumerActor extends AbstractLoggingActor {
      * @param done done message from the handler
      */
     private void messageHandled(Done done) {
-        log().info("Message has been processed - " + done.consumerRecord);
+//        log().info("Message has been processed - " + done.consumerRecord);
         int currentCount = count.incrementAndGet();
         if (currentCount == messageCount) {
             self().tell(new Poll(), self());

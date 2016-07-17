@@ -37,13 +37,14 @@ public class MessageHandlerActor extends AbstractLoggingActor {
      */
     private void handle(ProcessMessage processMessage) {
         try {
-            log().info("Got message " + processMessage.consumerRecord.value());
+//            log().info("Got message " + processMessage.consumerRecord.value());
 
             Reading reading = JsonSerializer.deserialize(processMessage.consumerRecord.value(), Reading.class);
 
-            ActorRef persistActor = context().actorOf(SpringExtension.SpringExtProvider.get(context().system()).props("CassandraActor"));
+            ActorRef persistActor = context().actorOf(SpringExtension.SpringExtProvider.get(context().system()).props("PersistReading"));
             persistActor.tell(new PersistReadingActor.Insert(Arrays.asList(reading), processMessage), self());
         } catch (Exception e) {
+            log().error(e.toString(), e);
             context().parent().tell(new KafkaConsumerActor.RecoverableError(processMessage.consumerRecord), self());
         }
     }

@@ -44,17 +44,22 @@ public class PersistReadingActor extends AbstractLoggingActor {
      * @param insert insert message
      */
     public void insert(Insert insert) {
+//        log().info("Got insert message for " + insert.readings);
         List<Reading> readings = insert.readings;
 
         Observable.from(readings)
                 .flatMap(reading -> Observable.from(
                         cassandraStore.async(insertCql,
                                 new Object[]{reading.getDeviceId(), reading.getReadTime(), reading.getValue(), reading.getFlag()}
-                        ), Schedulers.io()))
+                        )))
                 .subscribe(
                         rows -> {},
-                        throwable -> context().sender().tell(new InsertFailed(insert), self()),
+                        throwable -> {
+                            log().error(throwable.toString(), throwable);
+                            context().sender().tell(new InsertFailed(insert), self());
+                        },
                         () -> context().sender().tell(new InsertSuccessful(insert), self())
+
                 );
 
     }
